@@ -1,0 +1,24 @@
+{
+  "name": "rtclive",
+  "version": "1.0.0",
+  "description": "RTCLive-js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/notedit/RTCLive-js.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/notedit/RTCLive-js/issues"
+  },
+  "homepage": "https://github.com/notedit/RTCLive-js#readme",
+  "dependencies": {
+    "@types/events": "^3.0.0",
+    "events": "^3.0.0",
+    "webrtc-adapter": "^7.2.0"
+  }
+}

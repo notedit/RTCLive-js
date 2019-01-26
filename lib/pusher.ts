@@ -1,7 +1,4 @@
 import { EventEmitter }   from 'events'
-import webrtc             from 'webrtc-adapter'
-
-
 
 class RTCPusherConfig {
 
@@ -10,7 +7,7 @@ class RTCPusherConfig {
 class RTCPusher extends EventEmitter {
 
     private stream:MediaStream
-    private peerconnection:RTCPeerConnection
+    private peerconnection:any
     private config:RTCPusherConfig
     private closed:boolean
     private videoElement:HTMLVideoElement
@@ -122,5 +119,9 @@ class RTCPusher extends EventEmitter {
 
 }
 
-export default RTCPusher
+export {
+    RTCPusherConfig,
+    RTCPusher
+}
+
 

@@ -1,5 +1,4 @@
 import { EventEmitter }   from 'events'
-import webrtc             from 'webrtc-adapter'
 
 
 class RTCPlayerConfig {
@@ -10,7 +9,7 @@ class RTCPlayerConfig {
 class RTCPlayer extends EventEmitter {
 
     private stream:MediaStream
-    private peerconnection:RTCPeerConnection
+    private peerconnection:any
     private config:RTCPlayerConfig
     private closed:boolean
     private videoElement:HTMLVideoElement
@@ -45,7 +44,7 @@ class RTCPlayer extends EventEmitter {
                 console.log(this.peerconnection.iceConnectionState)
             }
     
-            this.peerconnection.ontrack = (event:RTCTrackEvent) => {
+            this.peerconnection.ontrack = (event) => {
 
                 if(playTimeout) {
                     clearTimeout(playTimeout)
@@ -120,4 +119,7 @@ class RTCPlayer extends EventEmitter {
     
 }
 
-export default RTCPlayer
+export {
+    RTCPlayerConfig,
+    RTCPlayer
+}

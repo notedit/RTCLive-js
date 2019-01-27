@@ -14,8 +14,10 @@ var player_1 = require("./player");
 
 exports.RTCPlayer = player_1.RTCPlayer;
 exports.RTCPlayerConfig = player_1.RTCPlayerConfig;
-console.log(pusher_1.RTCPusher);
-console.log(player_1.RTCPlayer);
+window.RTCPusher = pusher_1.RTCPusher;
+window.RTCPlayer = player_1.RTCPlayer;
+window.RTCPusherConfig = pusher_1.RTCPusherConfig;
+window.RTCPlayerConfig = player_1.RTCPlayerConfig;
 
 },{"./player":2,"./pusher":3}],2:[function(require,module,exports){
 "use strict";

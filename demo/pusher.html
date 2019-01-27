@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
+<title> WebRTC BroadCast </title>
+<style type="text/css">
+</style>
+
+<script src="http://127.0.0.1:8080/dist/rtclive.js"></script>
+<script type='text/javascript'>
+
+window.localStorage.setItem('debug', '*ERROR*');
+
+function init() {    
+    
+    var videoElement = document.getElementById('video_container');
+
+    console.log(RTCPlayer);
+    
+}
+
+</script>
+</head>
+<body onload="init();">
+    <h1> WebRTC BroadCast</h1>
+
+    
+	<br/>
+	<div id="conference">
+		Video:
+		<br />
+		<div >
+
+            <video id="video_container" width="640" height="480">
+            </video>
+        </div>
+    </div>
+
+</body>
+</html>

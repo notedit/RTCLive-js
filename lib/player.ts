@@ -56,6 +56,8 @@ class RTCPlayer extends EventEmitter {
                         return
                     }
                     this.stream = event.streams[0]
+                    console.log('got stream ')
+                    resolve()
                 }, 0)
             }
 
@@ -115,6 +117,12 @@ class RTCPlayer extends EventEmitter {
 
         this.videoElement = videoElement
         this.videoElement.srcObject = this.stream
+
+        try {
+            this.videoElement.play()
+        } catch (error) {
+            
+        }
     }
     
 }

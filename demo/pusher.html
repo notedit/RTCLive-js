@@ -11,12 +11,21 @@
 
 window.localStorage.setItem('debug', '*ERROR*');
 
-function init() {    
+async function init() {    
+
+    const videoElement = document.getElementById('video_container');
+    const pusherConfig = new RTCPusherConfig();
+    const pusher = new RTCPusher(pusherConfig);
+
+    await pusher.setupLocalMedia();
+
+    pusher.play(videoElement);
+
+    const pushUrl =  'http://127.0.0.1:5000/publish/test_streamID';
+    const unpushUrl = 'http://127.0.0.1:5000/unpublish/test_streamID';
+
+    await pusher.startPush(pushUrl);
     
-    var videoElement = document.getElementById('video_container');
-
-    console.log(RTCPusher);
-
 }
 
 </script>

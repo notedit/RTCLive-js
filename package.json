@@ -2,9 +2,9 @@
   "name": "rtclive",
   "version": "1.0.0",
   "description": "RTCLive-js",
-  "main": "dist/rtclive.js",
+  "main": "lib/index.ts",
   "scripts": {
-    "demo":  "npx http-server --cors",
+    "demo": "npx http-server --cors",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -24,9 +24,12 @@
   },
   "devDependencies": {
     "@babel/core": "^7.2.2",
+    "@babel/plugin-transform-runtime": "^7.2.0",
     "@babel/preset-env": "^7.3.1",
+    "@babel/runtime": "^7.3.1",
     "babel-core": "^6.26.3",
     "babel-loader": "^8.0.5",
+    "babel-plugin-transform-runtime": "^6.23.0",
     "babelify": "^10.0.0",
     "browserify": "^16.2.3",
     "gulp": "^4.0.0",

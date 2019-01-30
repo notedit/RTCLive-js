@@ -16,6 +16,8 @@ class RTCPusher extends EventEmitter {
     private videoTrack:MediaStreamTrack 
     private audioSender:RTCRtpSender
     private videoSender:RTCRtpSender
+    private websocket:WebSocket
+
 
     constructor(config:RTCPusherConfig) {
         super()
@@ -36,7 +38,7 @@ class RTCPusher extends EventEmitter {
         this.stream = stream
     }
 
-    async startPush(pushUrl:string) {
+    async startPush(streamId:string, pushUrl?:string) {
 
         let options = {
             iceServers: [],
@@ -64,25 +66,62 @@ class RTCPusher extends EventEmitter {
         // todo sdp mangle
         await this.peerconnection.setLocalDescription(offer)
 
-        let res = await fetch(pushUrl, {
-            method: 'post',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                sdp: offer.sdp
-            })
+
+        return new Promise(async (resolve,reject) => {
+
+            this.websocket = new WebSocket(pushUrl)
+
+            let hasConnected = false
+            this.websocket.onopen = () => {
+    
+                console.log('onopen')
+
+                hasConnected = true
+
+                this.websocket.send(JSON.stringify({
+                    cmd: 'publish',
+                    streamId:streamId,
+                    sdp: offer.sdp
+                }))
+            }
+    
+            this.websocket.onerror = () => {
+                console.error('onerror')
+
+                if (!hasConnected) {
+                    reject('can not connecte to server')
+                }
+            }
+    
+            this.websocket.onmessage = async (event) => {
+                const data = event.data
+                const msg = JSON.parse(data)
+
+                if (msg.code > 0) {
+                    reject('onmessage error')
+                    return
+                }
+
+                let answer = new RTCSessionDescription({
+                    type: 'answer',
+                    sdp: msg.data.sdp
+                })
+        
+                await this.peerconnection.setRemoteDescription(answer)
+
+                resolve()
+            } 
+
+            this.websocket.onclose = () => {
+
+                console.log("onclose")
+            }
+
         })
 
-        let ret = await res.json()
-
-        let answer = new RTCSessionDescription({
-            type: 'answer',
-            sdp: ret.d.sdp
-        })
-
-        await this.peerconnection.setRemoteDescription(answer)
     }
 
-    async stopPush(unpushUrl:string) {
+    async stopPush(streamId:string) {
 
         if (this.audioSender) {
             this.peerconnection.removeTrack(this.audioSender)
@@ -92,14 +131,13 @@ class RTCPusher extends EventEmitter {
             this.peerconnection.removeTrack(this.videoSender)
         }
 
-        let res = await fetch(unpushUrl, {
-            method: 'post',
-            headers: { 'Content-Type': 'application/json' },
-        })
-        
 
         if (this.peerconnection) {
             this.peerconnection.close()
+        }
+
+        if (this.websocket) {
+            this.websocket.close()
         }
 
     }

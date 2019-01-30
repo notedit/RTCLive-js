@@ -369,16 +369,16 @@ function (_events_1$EventEmitte) {
     }
   }, {
     key: "startPush",
-    value: function startPush(pushUrl) {
+    value: function startPush(streamId, pushUrl) {
       return __awaiter(this, void 0, void 0,
       /*#__PURE__*/
-      _regenerator.default.mark(function _callee2() {
+      _regenerator.default.mark(function _callee4() {
         var _this2 = this;
 
-        var options, offer, res, ret, answer;
-        return _regenerator.default.wrap(function _callee2$(_context2) {
+        var options, offer;
+        return _regenerator.default.wrap(function _callee4$(_context4) {
           while (1) {
-            switch (_context2.prev = _context2.next) {
+            switch (_context4.prev = _context4.next) {
               case 0:
                 options = {
                   iceServers: [],
@@ -394,81 +394,141 @@ function (_events_1$EventEmitte) {
                 };
 
                 if (!this.audioTrack) {
-                  _context2.next = 7;
+                  _context4.next = 7;
                   break;
                 }
 
-                _context2.next = 6;
+                _context4.next = 6;
                 return this.peerconnection.addTrack(this.audioTrack, this.stream);
 
               case 6:
-                this.audioSender = _context2.sent;
+                this.audioSender = _context4.sent;
 
               case 7:
                 if (!this.videoTrack) {
-                  _context2.next = 11;
+                  _context4.next = 11;
                   break;
                 }
 
-                _context2.next = 10;
+                _context4.next = 10;
                 return this.peerconnection.addTrack(this.videoTrack, this.stream);
 
               case 10:
-                this.videoSender = _context2.sent;
+                this.videoSender = _context4.sent;
 
               case 11:
-                _context2.next = 13;
+                _context4.next = 13;
                 return this.peerconnection.createOffer();
 
               case 13:
-                offer = _context2.sent;
-                _context2.next = 16;
+                offer = _context4.sent;
+                _context4.next = 16;
                 return this.peerconnection.setLocalDescription(offer);
 
               case 16:
-                _context2.next = 18;
-                return fetch(pushUrl, {
-                  method: 'post',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    sdp: offer.sdp
-                  })
-                });
+                return _context4.abrupt("return", new Promise(function (resolve, reject) {
+                  return __awaiter(_this2, void 0, void 0,
+                  /*#__PURE__*/
+                  _regenerator.default.mark(function _callee3() {
+                    var _this3 = this;
 
-              case 18:
-                res = _context2.sent;
-                _context2.next = 21;
-                return res.json();
+                    var hasConnected;
+                    return _regenerator.default.wrap(function _callee3$(_context3) {
+                      while (1) {
+                        switch (_context3.prev = _context3.next) {
+                          case 0:
+                            this.websocket = new WebSocket(pushUrl);
+                            hasConnected = false;
 
-              case 21:
-                ret = _context2.sent;
-                answer = new RTCSessionDescription({
-                  type: 'answer',
-                  sdp: ret.d.sdp
-                });
-                _context2.next = 25;
-                return this.peerconnection.setRemoteDescription(answer);
+                            this.websocket.onopen = function () {
+                              console.log('onopen');
+                              hasConnected = true;
 
-              case 25:
+                              _this3.websocket.send(JSON.stringify({
+                                cmd: 'publish',
+                                streamId: streamId,
+                                sdp: offer.sdp
+                              }));
+                            };
+
+                            this.websocket.onerror = function () {
+                              console.error('onerror');
+
+                              if (!hasConnected) {
+                                reject('can not connecte to server');
+                              }
+                            };
+
+                            this.websocket.onmessage = function (event) {
+                              return __awaiter(_this3, void 0, void 0,
+                              /*#__PURE__*/
+                              _regenerator.default.mark(function _callee2() {
+                                var data, msg, answer;
+                                return _regenerator.default.wrap(function _callee2$(_context2) {
+                                  while (1) {
+                                    switch (_context2.prev = _context2.next) {
+                                      case 0:
+                                        data = event.data;
+                                        msg = JSON.parse(data);
+
+                                        if (!(msg.code > 0)) {
+                                          _context2.next = 5;
+                                          break;
+                                        }
+
+                                        reject('onmessage error');
+                                        return _context2.abrupt("return");
+
+                                      case 5:
+                                        answer = new RTCSessionDescription({
+                                          type: 'answer',
+                                          sdp: msg.data.sdp
+                                        });
+                                        _context2.next = 8;
+                                        return this.peerconnection.setRemoteDescription(answer);
+
+                                      case 8:
+                                        resolve();
+
+                                      case 9:
+                                      case "end":
+                                        return _context2.stop();
+                                    }
+                                  }
+                                }, _callee2, this);
+                              }));
+                            };
+
+                            this.websocket.onclose = function () {
+                              console.log("onclose");
+                            };
+
+                          case 6:
+                          case "end":
+                            return _context3.stop();
+                        }
+                      }
+                    }, _callee3, this);
+                  }));
+                }));
+
+              case 17:
               case "end":
-                return _context2.stop();
+                return _context4.stop();
             }
           }
-        }, _callee2, this);
+        }, _callee4, this);
       }));
     }
   }, {
     key: "stopPush",
-    value: function stopPush(unpushUrl) {
+    value: function stopPush(streamId) {
       return __awaiter(this, void 0, void 0,
       /*#__PURE__*/
-      _regenerator.default.mark(function _callee3() {
-        var res;
-        return _regenerator.default.wrap(function _callee3$(_context3) {
+      _regenerator.default.mark(function _callee5() {
+        return _regenerator.default.wrap(function _callee5$(_context5) {
           while (1) {
-            switch (_context3.prev = _context3.next) {
+            switch (_context5.prev = _context5.next) {
               case 0:
                 if (this.audioSender) {
                   this.peerconnection.removeTrack(this.audioSender);
@@ -478,27 +538,20 @@ function (_events_1$EventEmitte) {
                   this.peerconnection.removeTrack(this.videoSender);
                 }
 
-                _context3.next = 4;
-                return fetch(unpushUrl, {
-                  method: 'post',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  }
-                });
-
-              case 4:
-                res = _context3.sent;
-
                 if (this.peerconnection) {
                   this.peerconnection.close();
                 }
 
-              case 6:
+                if (this.websocket) {
+                  this.websocket.close();
+                }
+
+              case 4:
               case "end":
-                return _context3.stop();
+                return _context5.stop();
             }
           }
-        }, _callee3, this);
+        }, _callee5, this);
       }));
     }
   }, {

@@ -14,15 +14,19 @@ class RTCPlayer extends EventEmitter {
     private closed:boolean
     private videoElement:HTMLVideoElement
     private subscriberId:string
-    private streamId:string 
     private websocket:WebSocket
+    private streamId:string
+    private playUrl:string
 
     constructor(config:RTCPlayerConfig) {
         super()
         this.config = config
     }
 
-    async startPlay(streamId:string, playUrl?:string) {
+    async startPlay(streamId:string, playUrl:string) {
+
+        this.streamId = streamId
+        this.playUrl = playUrl
 
         return new Promise(async (resolve,reject) => {
 

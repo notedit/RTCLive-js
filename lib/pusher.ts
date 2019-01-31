@@ -18,8 +18,7 @@ class RTCPusher extends EventEmitter {
     private videoSender:RTCRtpSender
     private websocket:WebSocket
     private streamId:string 
-
-
+    private pushUrl:string
 
     constructor(config:RTCPusherConfig) {
         super()
@@ -40,7 +39,11 @@ class RTCPusher extends EventEmitter {
         this.stream = stream
     }
 
-    async startPush(streamId:string, pushUrl?:string) {
+    async startPush(streamId:string, pushUrl:string) {
+
+        this.streamId = streamId
+        this.pushUrl = pushUrl
+
 
         let options = {
             iceServers: [],
@@ -83,12 +86,11 @@ class RTCPusher extends EventEmitter {
                 const data =  {
                     cmd: 'publish',
                     streamId:streamId,
-                    sdp: offer.sdp
+                    sdp: offer.sdp,
+                    data: {}
                 }
 
                 this.websocket.send(JSON.stringify(data))
-
-                console.log('send', data)
 
             }
     
@@ -115,7 +117,7 @@ class RTCPusher extends EventEmitter {
                 })
         
                 await this.peerconnection.setRemoteDescription(answer)
-
+                
                 resolve()
             } 
 

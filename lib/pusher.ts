@@ -17,6 +17,8 @@ class RTCPusher extends EventEmitter {
     private audioSender:RTCRtpSender
     private videoSender:RTCRtpSender
     private websocket:WebSocket
+    private streamId:string 
+
 
 
     constructor(config:RTCPusherConfig) {
@@ -118,7 +120,6 @@ class RTCPusher extends EventEmitter {
             } 
 
             this.websocket.onclose = () => {
-
                 console.log("onclose")
             }
 
@@ -126,7 +127,7 @@ class RTCPusher extends EventEmitter {
 
     }
 
-    async stopPush(streamId:string) {
+    async stopPush() {
 
         if (this.audioSender) {
             this.peerconnection.removeTrack(this.audioSender)

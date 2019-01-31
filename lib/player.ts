@@ -14,13 +14,15 @@ class RTCPlayer extends EventEmitter {
     private closed:boolean
     private videoElement:HTMLVideoElement
     private subscriberId:string
+    private streamId:string 
+    private websocket:WebSocket
 
     constructor(config:RTCPlayerConfig) {
         super()
         this.config = config
     }
 
-    async startPlay(playUrl:string) {
+    async startPlay(streamId:string, playUrl?:string) {
 
         return new Promise(async (resolve,reject) => {
 
@@ -68,42 +70,75 @@ class RTCPlayer extends EventEmitter {
 
             await this.peerconnection.setLocalDescription(offer)
 
-            let res = await fetch(playUrl, {
-                method: 'post',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sdp: offer.sdp
-                })
-            })
+
+            return new Promise((resolve,reject) => {
+
+                this.websocket = new WebSocket(playUrl)
+
+                let hasConnected = false
     
-            let ret = await res.json()
+                this.websocket.onopen = () => {
+    
+                    hasConnected = true
+    
+                    const data =  {
+                        cmd: 'play',
+                        streamId:streamId,
+                        sdp: offer.sdp
+                    }
+    
+                    this.websocket.send(JSON.stringify(data))
+    
+                    console.log('send', data)
+                }
+    
+                this.websocket.onmessage = async (event) => {
+    
+                    const data = event.data
+                    const msg = JSON.parse(data)
+    
+                    if (msg.code > 0) {
+                        reject('onmessage error')
+                        return
+                    }
+    
+                    let answer = new RTCSessionDescription({
+                        type: 'answer',
+                        sdp: msg.data.sdp
+                    })
+            
+                    await this.peerconnection.setRemoteDescription(answer)
+    
+                    resolve()
+                }
+    
+                this.websocket.onclose = (event) => {
 
-            this.subscriberId = ret.d.subscriberId 
+                    console.log("onclose")
+                }
+    
+                this.websocket.onerror = (event) => {
 
-            let answer = new RTCSessionDescription({
-                type: 'answer',
-                sdp: ret.d.sdp
+                    console.error('onerror')
+                    if (!hasConnected) {
+                        reject('can not connecte to server')
+                    }
+                }
             })
 
-            await this.peerconnection.setRemoteDescription(answer)
         })
 
     }
 
-    async stopPlay(unplayUrl:string) {
-
-        let res = await fetch(unplayUrl, {
-            method: 'post',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                subscriberId:this.subscriberId
-            })
-        })
-
+    async stopPlay() {
+        
         if (this.peerconnection) {
             this.peerconnection.close()
         }
 
+        if (this.websocket) {
+            this.websocket.close()
+        }
     }
 
     play(videoElement:HTMLVideoElement) {

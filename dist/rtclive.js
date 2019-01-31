@@ -102,6 +102,8 @@ function (_events_1$EventEmitte) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
+                this.streamId = streamId;
+                this.playUrl = playUrl;
                 return _context3.abrupt("return", new Promise(function (resolve, reject) {
                   return __awaiter(_this2, void 0, void 0,
                   /*#__PURE__*/
@@ -242,7 +244,7 @@ function (_events_1$EventEmitte) {
                   }));
                 }));
 
-              case 1:
+              case 3:
               case "end":
                 return _context3.stop();
             }
@@ -413,6 +415,8 @@ function (_events_1$EventEmitte) {
           while (1) {
             switch (_context4.prev = _context4.next) {
               case 0:
+                this.streamId = streamId;
+                this.pushUrl = pushUrl;
                 options = {
                   iceServers: [],
                   iceTransportPolicy: 'all',
@@ -427,38 +431,38 @@ function (_events_1$EventEmitte) {
                 };
 
                 if (!this.audioTrack) {
-                  _context4.next = 7;
+                  _context4.next = 9;
                   break;
                 }
 
-                _context4.next = 6;
+                _context4.next = 8;
                 return this.peerconnection.addTrack(this.audioTrack, this.stream);
 
-              case 6:
+              case 8:
                 this.audioSender = _context4.sent;
 
-              case 7:
+              case 9:
                 if (!this.videoTrack) {
-                  _context4.next = 11;
+                  _context4.next = 13;
                   break;
                 }
 
-                _context4.next = 10;
+                _context4.next = 12;
                 return this.peerconnection.addTrack(this.videoTrack, this.stream);
 
-              case 10:
+              case 12:
                 this.videoSender = _context4.sent;
 
-              case 11:
-                _context4.next = 13;
+              case 13:
+                _context4.next = 15;
                 return this.peerconnection.createOffer();
 
-              case 13:
+              case 15:
                 offer = _context4.sent;
-                _context4.next = 16;
+                _context4.next = 18;
                 return this.peerconnection.setLocalDescription(offer);
 
-              case 16:
+              case 18:
                 return _context4.abrupt("return", new Promise(function (resolve, reject) {
                   return __awaiter(_this2, void 0, void 0,
                   /*#__PURE__*/
@@ -479,12 +483,11 @@ function (_events_1$EventEmitte) {
                               var data = {
                                 cmd: 'publish',
                                 streamId: streamId,
-                                sdp: offer.sdp
+                                sdp: offer.sdp,
+                                data: {}
                               };
 
                               _this3.websocket.send(JSON.stringify(data));
-
-                              console.log('send', data);
                             };
 
                             this.websocket.onerror = function () {
@@ -548,7 +551,7 @@ function (_events_1$EventEmitte) {
                   }));
                 }));
 
-              case 17:
+              case 19:
               case "end":
                 return _context4.stop();
             }

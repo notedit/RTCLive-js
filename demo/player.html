@@ -17,10 +17,9 @@ async function init() {
     const playerConfig = new RTCPlayerConfig();
 	const player = new RTCPlayer(playerConfig);
 	
-	const playUrl =  'http://127.0.0.1:5000/play/test_streamID';
-    const unplayUrl = 'http://127.0.0.1:5000/unplay/test_streamID';
+	const playUrl =  'ws://127.0.0.1:5000/ws';
 
-	await player.startPlay(playUrl);
+	await player.startPlay('test_streamID',playUrl);
 	
 	player.play(videoElement);
 
@@ -36,7 +35,7 @@ async function init() {
 		Video:
 		<br />
 		<div >
-            <video id="video_container" playsinline controls width="640" height="480">
+            <video id="video_container" playsinline controls autoplay width="640" height="480">
             </video>
         </div>
     </div>

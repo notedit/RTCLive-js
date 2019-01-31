@@ -154,6 +154,7 @@ class RTCPusher extends EventEmitter {
 
         videoElement.setAttribute('playsinline','playsinline')
         videoElement.setAttribute('autoplay', 'true')
+        videoElement.muted = true
 
         videoElement.onloadedmetadata = () => {
 

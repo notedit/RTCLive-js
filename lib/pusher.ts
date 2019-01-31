@@ -78,11 +78,16 @@ class RTCPusher extends EventEmitter {
 
                 hasConnected = true
 
-                this.websocket.send(JSON.stringify({
+                const data =  {
                     cmd: 'publish',
                     streamId:streamId,
                     sdp: offer.sdp
-                }))
+                }
+
+                this.websocket.send(JSON.stringify(data))
+
+                console.log('send', data)
+
             }
     
             this.websocket.onerror = () => {

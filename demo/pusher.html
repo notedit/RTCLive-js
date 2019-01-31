@@ -21,10 +21,9 @@ async function init() {
 
     pusher.play(videoElement);
 
-    const pushUrl =  'http://127.0.0.1:5000/publish/test_streamID';
-    const unpushUrl = 'http://127.0.0.1:5000/unpublish/test_streamID';
+    const pushUrl =  'ws://127.0.0.1:5000/ws';
 
-    await pusher.startPush(pushUrl);
+    await pusher.startPush('test_streamID', pushUrl);
     
 }
 

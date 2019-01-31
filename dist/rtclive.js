@@ -443,12 +443,15 @@ function (_events_1$EventEmitte) {
                             this.websocket.onopen = function () {
                               console.log('onopen');
                               hasConnected = true;
-
-                              _this3.websocket.send(JSON.stringify({
+                              var data = {
                                 cmd: 'publish',
                                 streamId: streamId,
                                 sdp: offer.sdp
-                              }));
+                              };
+
+                              _this3.websocket.send(JSON.stringify(data));
+
+                              console.log('send', data);
                             };
 
                             this.websocket.onerror = function () {

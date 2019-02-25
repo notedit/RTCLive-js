@@ -100,7 +100,9 @@ class RTCPlayer extends EventEmitter {
     
                     const data = event.data
                     const msg = JSON.parse(data)
-    
+                    
+                    console.dir(msg)
+
                     if (msg.code > 0) {
                         reject('onmessage error')
                         return

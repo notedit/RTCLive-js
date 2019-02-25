@@ -193,27 +193,28 @@ function (_events_1$EventEmitte) {
                                         case 0:
                                           data = event.data;
                                           msg = JSON.parse(data);
+                                          console.dir(msg);
 
                                           if (!(msg.code > 0)) {
-                                            _context.next = 5;
+                                            _context.next = 6;
                                             break;
                                           }
 
                                           reject('onmessage error');
                                           return _context.abrupt("return");
 
-                                        case 5:
+                                        case 6:
                                           answer = new RTCSessionDescription({
                                             type: 'answer',
                                             sdp: msg.data.sdp
                                           });
-                                          _context.next = 8;
+                                          _context.next = 9;
                                           return this.peerconnection.setRemoteDescription(answer);
 
-                                        case 8:
+                                        case 9:
                                           resolve();
 
-                                        case 9:
+                                        case 10:
                                         case "end":
                                           return _context.stop();
                                       }
@@ -598,6 +599,7 @@ function (_events_1$EventEmitte) {
     value: function play(videoElement) {
       videoElement.setAttribute('playsinline', 'playsinline');
       videoElement.setAttribute('autoplay', 'true');
+      videoElement.muted = true;
 
       videoElement.onloadedmetadata = function () {};
 

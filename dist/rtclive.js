@@ -92,18 +92,22 @@ function (_events_1$EventEmitte) {
 
   (0, _createClass2.default)(RTCPlayer, [{
     key: "startPlay",
-    value: function startPlay(streamId, playUrl) {
+    value: function startPlay(playUrl) {
       return __awaiter(this, void 0, void 0,
       /*#__PURE__*/
       _regenerator.default.mark(function _callee3() {
         var _this2 = this;
 
+        var playURL, pathname, streaminfo;
         return _regenerator.default.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                this.streamId = streamId;
                 this.playUrl = playUrl;
+                playURL = new URL(playUrl);
+                pathname = playURL.pathname;
+                streaminfo = pathname.split('/');
+                this.streamId = streaminfo.pop();
                 return _context3.abrupt("return", new Promise(function (resolve, reject) {
                   return __awaiter(_this2, void 0, void 0,
                   /*#__PURE__*/
@@ -173,7 +177,7 @@ function (_events_1$EventEmitte) {
                                 hasConnected = true;
                                 var data = {
                                   cmd: 'play',
-                                  streamId: streamId,
+                                  streamId: _this3.streamId,
                                   sdp: offer.sdp
                                 };
 
@@ -245,7 +249,7 @@ function (_events_1$EventEmitte) {
                   }));
                 }));
 
-              case 3:
+              case 6:
               case "end":
                 return _context3.stop();
             }
@@ -351,6 +355,11 @@ Object.defineProperty(exports, "__esModule", {
 
 var events_1 = require("events");
 
+var parseUrl = require('url-parse');
+
+var BASE_URL = 'http://localhost:5000';
+var BACK_BASH_URL = 'http://localhost:5000';
+
 var RTCPusherConfig = function RTCPusherConfig() {
   (0, _classCallCheck2.default)(this, RTCPusherConfig);
 };
@@ -385,8 +394,8 @@ function (_events_1$EventEmitte) {
               case 0:
                 _context.next = 2;
                 return navigator.mediaDevices.getUserMedia({
-                  audio: true,
-                  video: true
+                  audio: this.config.audio,
+                  video: this.config.video
                 });
 
               case 2:
@@ -402,21 +411,24 @@ function (_events_1$EventEmitte) {
           }
         }, _callee, this);
       }));
-    }
+    } // pushUrl:  webrtc://domain:port/app/stream 
+
   }, {
     key: "startPush",
-    value: function startPush(streamId, pushUrl) {
+    value: function startPush(pushUrl) {
       return __awaiter(this, void 0, void 0,
       /*#__PURE__*/
-      _regenerator.default.mark(function _callee4() {
-        var _this2 = this;
-
-        var options, offer;
-        return _regenerator.default.wrap(function _callee4$(_context4) {
+      _regenerator.default.mark(function _callee2() {
+        var parsedUrl, pathname, streaminfo, options, peerconnection, transceiverInit, offer, data, res, ret, sdp, answer;
+        return _regenerator.default.wrap(function _callee2$(_context2) {
           while (1) {
-            switch (_context4.prev = _context4.next) {
+            switch (_context2.prev = _context2.next) {
               case 0:
-                this.streamId = streamId;
+                parsedUrl = parseUrl(pushUrl);
+                pathname = parsedUrl.pathname;
+                streaminfo = pathname.split('/');
+                console.dir(streaminfo);
+                this.streamId = streaminfo.pop();
                 this.pushUrl = pushUrl;
                 options = {
                   iceServers: [],
@@ -425,139 +437,105 @@ function (_events_1$EventEmitte) {
                   rtcpMuxPolicy: 'require',
                   sdpSemantics: 'unified-plan'
                 };
-                this.peerconnection = new RTCPeerConnection(options);
+                peerconnection = new RTCPeerConnection(options);
 
-                this.peerconnection.oniceconnectionstatechange = function () {
-                  console.log(_this2.peerconnection.iceConnectionState);
+                peerconnection.oniceconnectionstatechange = function () {
+                  console.log(peerconnection.iceConnectionState);
+                };
+
+                transceiverInit = {
+                  direction: 'sendonly',
+                  streams: [this.stream]
                 };
 
                 if (!this.audioTrack) {
-                  _context4.next = 9;
+                  _context2.next = 16;
                   break;
                 }
 
-                _context4.next = 8;
-                return this.peerconnection.addTrack(this.audioTrack, this.stream);
-
-              case 8:
-                this.audioSender = _context4.sent;
-
-              case 9:
-                if (!this.videoTrack) {
-                  _context4.next = 13;
-                  break;
-                }
-
-                _context4.next = 12;
-                return this.peerconnection.addTrack(this.videoTrack, this.stream);
-
-              case 12:
-                this.videoSender = _context4.sent;
+                _context2.next = 13;
+                return peerconnection.addTransceiver(this.audioTrack, transceiverInit);
 
               case 13:
-                _context4.next = 15;
-                return this.peerconnection.createOffer();
+                this.audioTransceiver = _context2.sent;
+                _context2.next = 19;
+                break;
 
-              case 15:
-                offer = _context4.sent;
-                _context4.next = 18;
-                return this.peerconnection.setLocalDescription(offer);
+              case 16:
+                _context2.next = 18;
+                return peerconnection.addTransceiver('audio', transceiverInit);
 
               case 18:
-                return _context4.abrupt("return", new Promise(function (resolve, reject) {
-                  return __awaiter(_this2, void 0, void 0,
-                  /*#__PURE__*/
-                  _regenerator.default.mark(function _callee3() {
-                    var _this3 = this;
-
-                    var hasConnected;
-                    return _regenerator.default.wrap(function _callee3$(_context3) {
-                      while (1) {
-                        switch (_context3.prev = _context3.next) {
-                          case 0:
-                            this.websocket = new WebSocket(pushUrl);
-                            hasConnected = false;
-
-                            this.websocket.onopen = function () {
-                              console.log('onopen');
-                              hasConnected = true;
-                              var data = {
-                                cmd: 'publish',
-                                streamId: streamId,
-                                sdp: offer.sdp,
-                                data: {}
-                              };
-
-                              _this3.websocket.send(JSON.stringify(data));
-                            };
-
-                            this.websocket.onerror = function () {
-                              console.error('onerror');
-
-                              if (!hasConnected) {
-                                reject('can not connecte to server');
-                              }
-                            };
-
-                            this.websocket.onmessage = function (event) {
-                              return __awaiter(_this3, void 0, void 0,
-                              /*#__PURE__*/
-                              _regenerator.default.mark(function _callee2() {
-                                var data, msg, answer;
-                                return _regenerator.default.wrap(function _callee2$(_context2) {
-                                  while (1) {
-                                    switch (_context2.prev = _context2.next) {
-                                      case 0:
-                                        data = event.data;
-                                        msg = JSON.parse(data);
-
-                                        if (!(msg.code > 0)) {
-                                          _context2.next = 5;
-                                          break;
-                                        }
-
-                                        reject('onmessage error');
-                                        return _context2.abrupt("return");
-
-                                      case 5:
-                                        answer = new RTCSessionDescription({
-                                          type: 'answer',
-                                          sdp: msg.data.sdp
-                                        });
-                                        _context2.next = 8;
-                                        return this.peerconnection.setRemoteDescription(answer);
-
-                                      case 8:
-                                        resolve();
-
-                                      case 9:
-                                      case "end":
-                                        return _context2.stop();
-                                    }
-                                  }
-                                }, _callee2, this);
-                              }));
-                            };
-
-                            this.websocket.onclose = function () {
-                              console.log("onclose");
-                            };
-
-                          case 6:
-                          case "end":
-                            return _context3.stop();
-                        }
-                      }
-                    }, _callee3, this);
-                  }));
-                }));
+                this.audioTransceiver = _context2.sent;
 
               case 19:
+                if (!this.videoTrack) {
+                  _context2.next = 25;
+                  break;
+                }
+
+                _context2.next = 22;
+                return peerconnection.addTransceiver(this.videoTrack, transceiverInit);
+
+              case 22:
+                this.videoTransceiver = _context2.sent;
+                _context2.next = 28;
+                break;
+
+              case 25:
+                _context2.next = 27;
+                return peerconnection.addTransceiver('video', transceiverInit);
+
+              case 27:
+                this.videoTransceiver = _context2.sent;
+
+              case 28:
+                _context2.next = 30;
+                return peerconnection.createOffer();
+
+              case 30:
+                offer = _context2.sent;
+                _context2.next = 33;
+                return peerconnection.setLocalDescription(offer);
+
+              case 33:
+                this.peerconnection = peerconnection;
+                data = {
+                  streamUrl: pushUrl,
+                  streamId: this.streamId,
+                  sdp: offer.sdp
+                };
+                _context2.next = 37;
+                return fetch(BASE_URL + '/publish', {
+                  method: 'post',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(data)
+                });
+
+              case 37:
+                res = _context2.sent;
+                _context2.next = 40;
+                return res.json();
+
+              case 40:
+                ret = _context2.sent;
+                console.dir(ret);
+                sdp = ret.d.sdp;
+                answer = new RTCSessionDescription({
+                  type: 'answer',
+                  sdp: sdp
+                });
+                _context2.next = 46;
+                return this.peerconnection.setRemoteDescription(answer);
+
+              case 46:
               case "end":
-                return _context4.stop();
+                return _context2.stop();
             }
           }
-        }, _callee4, this);
+        }, _callee2, this);
       }));
     }
   }, {
@@ -565,33 +543,52 @@ function (_events_1$EventEmitte) {
     value: function stopPush() {
       return __awaiter(this, void 0, void 0,
       /*#__PURE__*/
-      _regenerator.default.mark(function _callee5() {
-        return _regenerator.default.wrap(function _callee5$(_context5) {
+      _regenerator.default.mark(function _callee3() {
+        var data, res, ret;
+        return _regenerator.default.wrap(function _callee3$(_context3) {
           while (1) {
-            switch (_context5.prev = _context5.next) {
+            switch (_context3.prev = _context3.next) {
               case 0:
-                if (this.audioSender) {
-                  this.peerconnection.removeTrack(this.audioSender);
+                if (this.audioTrack) {
+                  this.peerconnection.removeTrack(this.audioTransceiver.sender);
                 }
 
-                if (this.videoSender) {
-                  this.peerconnection.removeTrack(this.videoSender);
+                if (this.videoTrack) {
+                  this.peerconnection.removeTrack(this.videoTransceiver.sender);
                 }
 
                 if (this.peerconnection) {
                   this.peerconnection.close();
                 }
 
-                if (this.websocket) {
-                  this.websocket.close();
-                }
+                data = {
+                  streamUrl: this.pushUrl,
+                  streamId: this.streamId
+                };
+                _context3.next = 6;
+                return fetch(BASE_URL + '/unpublish', {
+                  method: 'post',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(data)
+                });
 
-              case 4:
+              case 6:
+                res = _context3.sent;
+                _context3.next = 9;
+                return res.json();
+
+              case 9:
+                ret = _context3.sent;
+                console.dir(ret);
+
+              case 11:
               case "end":
-                return _context5.stop();
+                return _context3.stop();
             }
           }
-        }, _callee5, this);
+        }, _callee3, this);
       }));
     }
   }, {
@@ -612,7 +609,7 @@ function (_events_1$EventEmitte) {
 
 exports.RTCPusher = RTCPusher;
 
-},{"@babel/runtime/helpers/classCallCheck":5,"@babel/runtime/helpers/createClass":6,"@babel/runtime/helpers/getPrototypeOf":7,"@babel/runtime/helpers/inherits":8,"@babel/runtime/helpers/interopRequireDefault":9,"@babel/runtime/helpers/possibleConstructorReturn":10,"@babel/runtime/regenerator":15,"events":16}],4:[function(require,module,exports){
+},{"@babel/runtime/helpers/classCallCheck":5,"@babel/runtime/helpers/createClass":6,"@babel/runtime/helpers/getPrototypeOf":7,"@babel/runtime/helpers/inherits":8,"@babel/runtime/helpers/interopRequireDefault":9,"@babel/runtime/helpers/possibleConstructorReturn":10,"@babel/runtime/regenerator":15,"events":16,"url-parse":19}],4:[function(require,module,exports){
 function _assertThisInitialized(self) {
   if (self === void 0) {
     throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
@@ -2017,6 +2014,621 @@ function functionBindPolyfill(context) {
   };
 }
 
-},{}]},{},[1])
+},{}],17:[function(require,module,exports){
+'use strict';
+
+var has = Object.prototype.hasOwnProperty
+  , undef;
+
+/**
+ * Decode a URI encoded string.
+ *
+ * @param {String} input The URI encoded string.
+ * @returns {String|Null} The decoded string.
+ * @api private
+ */
+function decode(input) {
+  try {
+    return decodeURIComponent(input.replace(/\+/g, ' '));
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Attempts to encode a given input.
+ *
+ * @param {String} input The string that needs to be encoded.
+ * @returns {String|Null} The encoded string.
+ * @api private
+ */
+function encode(input) {
+  try {
+    return encodeURIComponent(input);
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Simple query string parser.
+ *
+ * @param {String} query The query string that needs to be parsed.
+ * @returns {Object}
+ * @api public
+ */
+function querystring(query) {
+  var parser = /([^=?&]+)=?([^&]*)/g
+    , result = {}
+    , part;
+
+  while (part = parser.exec(query)) {
+    var key = decode(part[1])
+      , value = decode(part[2]);
+
+    //
+    // Prevent overriding of existing properties. This ensures that build-in
+    // methods like `toString` or __proto__ are not overriden by malicious
+    // querystrings.
+    //
+    // In the case if failed decoding, we want to omit the key/value pairs
+    // from the result.
+    //
+    if (key === null || value === null || key in result) continue;
+    result[key] = value;
+  }
+
+  return result;
+}
+
+/**
+ * Transform a query string to an object.
+ *
+ * @param {Object} obj Object that should be transformed.
+ * @param {String} prefix Optional prefix.
+ * @returns {String}
+ * @api public
+ */
+function querystringify(obj, prefix) {
+  prefix = prefix || '';
+
+  var pairs = []
+    , value
+    , key;
+
+  //
+  // Optionally prefix with a '?' if needed
+  //
+  if ('string' !== typeof prefix) prefix = '?';
+
+  for (key in obj) {
+    if (has.call(obj, key)) {
+      value = obj[key];
+
+      //
+      // Edge cases where we actually want to encode the value to an empty
+      // string instead of the stringified value.
+      //
+      if (!value && (value === null || value === undef || isNaN(value))) {
+        value = '';
+      }
+
+      key = encodeURIComponent(key);
+      value = encodeURIComponent(value);
+
+      //
+      // If we failed to encode the strings, we should bail out as we don't
+      // want to add invalid strings to the query.
+      //
+      if (key === null || value === null) continue;
+      pairs.push(key +'='+ value);
+    }
+  }
+
+  return pairs.length ? prefix + pairs.join('&') : '';
+}
+
+//
+// Expose the module.
+//
+exports.stringify = querystringify;
+exports.parse = querystring;
+
+},{}],18:[function(require,module,exports){
+'use strict';
+
+/**
+ * Check if we're required to add a port number.
+ *
+ * @see https://url.spec.whatwg.org/#default-port
+ * @param {Number|String} port Port number we need to check
+ * @param {String} protocol Protocol we need to check against.
+ * @returns {Boolean} Is it a default port for the given protocol
+ * @api private
+ */
+module.exports = function required(port, protocol) {
+  protocol = protocol.split(':')[0];
+  port = +port;
+
+  if (!port) return false;
+
+  switch (protocol) {
+    case 'http':
+    case 'ws':
+    return port !== 80;
+
+    case 'https':
+    case 'wss':
+    return port !== 443;
+
+    case 'ftp':
+    return port !== 21;
+
+    case 'gopher':
+    return port !== 70;
+
+    case 'file':
+    return false;
+  }
+
+  return port !== 0;
+};
+
+},{}],19:[function(require,module,exports){
+(function (global){
+'use strict';
+
+var required = require('requires-port')
+  , qs = require('querystringify')
+  , slashes = /^[A-Za-z][A-Za-z0-9+-.]*:\/\//
+  , protocolre = /^([a-z][a-z0-9.+-]*:)?(\/\/)?([\S\s]*)/i
+  , whitespace = '[\\x09\\x0A\\x0B\\x0C\\x0D\\x20\\xA0\\u1680\\u180E\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u202F\\u205F\\u3000\\u2028\\u2029\\uFEFF]'
+  , left = new RegExp('^'+ whitespace +'+');
+
+/**
+ * Trim a given string.
+ *
+ * @param {String} str String to trim.
+ * @public
+ */
+function trimLeft(str) {
+  return (str ? str : '').toString().replace(left, '');
+}
+
+/**
+ * These are the parse rules for the URL parser, it informs the parser
+ * about:
+ *
+ * 0. The char it Needs to parse, if it's a string it should be done using
+ *    indexOf, RegExp using exec and NaN means set as current value.
+ * 1. The property we should set when parsing this value.
+ * 2. Indication if it's backwards or forward parsing, when set as number it's
+ *    the value of extra chars that should be split off.
+ * 3. Inherit from location if non existing in the parser.
+ * 4. `toLowerCase` the resulting value.
+ */
+var rules = [
+  ['#', 'hash'],                        // Extract from the back.
+  ['?', 'query'],                       // Extract from the back.
+  function sanitize(address) {          // Sanitize what is left of the address
+    return address.replace('\\', '/');
+  },
+  ['/', 'pathname'],                    // Extract from the back.
+  ['@', 'auth', 1],                     // Extract from the front.
+  [NaN, 'host', undefined, 1, 1],       // Set left over value.
+  [/:(\d+)$/, 'port', undefined, 1],    // RegExp the back.
+  [NaN, 'hostname', undefined, 1, 1]    // Set left over.
+];
+
+/**
+ * These properties should not be copied or inherited from. This is only needed
+ * for all non blob URL's as a blob URL does not include a hash, only the
+ * origin.
+ *
+ * @type {Object}
+ * @private
+ */
+var ignore = { hash: 1, query: 1 };
+
+/**
+ * The location object differs when your code is loaded through a normal page,
+ * Worker or through a worker using a blob. And with the blobble begins the
+ * trouble as the location object will contain the URL of the blob, not the
+ * location of the page where our code is loaded in. The actual origin is
+ * encoded in the `pathname` so we can thankfully generate a good "default"
+ * location from it so we can generate proper relative URL's again.
+ *
+ * @param {Object|String} loc Optional default location object.
+ * @returns {Object} lolcation object.
+ * @public
+ */
+function lolcation(loc) {
+  var globalVar;
+
+  if (typeof window !== 'undefined') globalVar = window;
+  else if (typeof global !== 'undefined') globalVar = global;
+  else if (typeof self !== 'undefined') globalVar = self;
+  else globalVar = {};
+
+  var location = globalVar.location || {};
+  loc = loc || location;
+
+  var finaldestination = {}
+    , type = typeof loc
+    , key;
+
+  if ('blob:' === loc.protocol) {
+    finaldestination = new Url(unescape(loc.pathname), {});
+  } else if ('string' === type) {
+    finaldestination = new Url(loc, {});
+    for (key in ignore) delete finaldestination[key];
+  } else if ('object' === type) {
+    for (key in loc) {
+      if (key in ignore) continue;
+      finaldestination[key] = loc[key];
+    }
+
+    if (finaldestination.slashes === undefined) {
+      finaldestination.slashes = slashes.test(loc.href);
+    }
+  }
+
+  return finaldestination;
+}
+
+/**
+ * @typedef ProtocolExtract
+ * @type Object
+ * @property {String} protocol Protocol matched in the URL, in lowercase.
+ * @property {Boolean} slashes `true` if protocol is followed by "//", else `false`.
+ * @property {String} rest Rest of the URL that is not part of the protocol.
+ */
+
+/**
+ * Extract protocol information from a URL with/without double slash ("//").
+ *
+ * @param {String} address URL we want to extract from.
+ * @return {ProtocolExtract} Extracted information.
+ * @private
+ */
+function extractProtocol(address) {
+  address = trimLeft(address);
+  var match = protocolre.exec(address);
+
+  return {
+    protocol: match[1] ? match[1].toLowerCase() : '',
+    slashes: !!match[2],
+    rest: match[3]
+  };
+}
+
+/**
+ * Resolve a relative URL pathname against a base URL pathname.
+ *
+ * @param {String} relative Pathname of the relative URL.
+ * @param {String} base Pathname of the base URL.
+ * @return {String} Resolved pathname.
+ * @private
+ */
+function resolve(relative, base) {
+  if (relative === '') return base;
+
+  var path = (base || '/').split('/').slice(0, -1).concat(relative.split('/'))
+    , i = path.length
+    , last = path[i - 1]
+    , unshift = false
+    , up = 0;
+
+  while (i--) {
+    if (path[i] === '.') {
+      path.splice(i, 1);
+    } else if (path[i] === '..') {
+      path.splice(i, 1);
+      up++;
+    } else if (up) {
+      if (i === 0) unshift = true;
+      path.splice(i, 1);
+      up--;
+    }
+  }
+
+  if (unshift) path.unshift('');
+  if (last === '.' || last === '..') path.push('');
+
+  return path.join('/');
+}
+
+/**
+ * The actual URL instance. Instead of returning an object we've opted-in to
+ * create an actual constructor as it's much more memory efficient and
+ * faster and it pleases my OCD.
+ *
+ * It is worth noting that we should not use `URL` as class name to prevent
+ * clashes with the global URL instance that got introduced in browsers.
+ *
+ * @constructor
+ * @param {String} address URL we want to parse.
+ * @param {Object|String} [location] Location defaults for relative paths.
+ * @param {Boolean|Function} [parser] Parser for the query string.
+ * @private
+ */
+function Url(address, location, parser) {
+  address = trimLeft(address);
+
+  if (!(this instanceof Url)) {
+    return new Url(address, location, parser);
+  }
+
+  var relative, extracted, parse, instruction, index, key
+    , instructions = rules.slice()
+    , type = typeof location
+    , url = this
+    , i = 0;
+
+  //
+  // The following if statements allows this module two have compatibility with
+  // 2 different API:
+  //
+  // 1. Node.js's `url.parse` api which accepts a URL, boolean as arguments
+  //    where the boolean indicates that the query string should also be parsed.
+  //
+  // 2. The `URL` interface of the browser which accepts a URL, object as
+  //    arguments. The supplied object will be used as default values / fall-back
+  //    for relative paths.
+  //
+  if ('object' !== type && 'string' !== type) {
+    parser = location;
+    location = null;
+  }
+
+  if (parser && 'function' !== typeof parser) parser = qs.parse;
+
+  location = lolcation(location);
+
+  //
+  // Extract protocol information before running the instructions.
+  //
+  extracted = extractProtocol(address || '');
+  relative = !extracted.protocol && !extracted.slashes;
+  url.slashes = extracted.slashes || relative && location.slashes;
+  url.protocol = extracted.protocol || location.protocol || '';
+  address = extracted.rest;
+
+  //
+  // When the authority component is absent the URL starts with a path
+  // component.
+  //
+  if (!extracted.slashes) instructions[3] = [/(.*)/, 'pathname'];
+
+  for (; i < instructions.length; i++) {
+    instruction = instructions[i];
+
+    if (typeof instruction === 'function') {
+      address = instruction(address);
+      continue;
+    }
+
+    parse = instruction[0];
+    key = instruction[1];
+
+    if (parse !== parse) {
+      url[key] = address;
+    } else if ('string' === typeof parse) {
+      if (~(index = address.indexOf(parse))) {
+        if ('number' === typeof instruction[2]) {
+          url[key] = address.slice(0, index);
+          address = address.slice(index + instruction[2]);
+        } else {
+          url[key] = address.slice(index);
+          address = address.slice(0, index);
+        }
+      }
+    } else if ((index = parse.exec(address))) {
+      url[key] = index[1];
+      address = address.slice(0, index.index);
+    }
+
+    url[key] = url[key] || (
+      relative && instruction[3] ? location[key] || '' : ''
+    );
+
+    //
+    // Hostname, host and protocol should be lowercased so they can be used to
+    // create a proper `origin`.
+    //
+    if (instruction[4]) url[key] = url[key].toLowerCase();
+  }
+
+  //
+  // Also parse the supplied query string in to an object. If we're supplied
+  // with a custom parser as function use that instead of the default build-in
+  // parser.
+  //
+  if (parser) url.query = parser(url.query);
+
+  //
+  // If the URL is relative, resolve the pathname against the base URL.
+  //
+  if (
+      relative
+    && location.slashes
+    && url.pathname.charAt(0) !== '/'
+    && (url.pathname !== '' || location.pathname !== '')
+  ) {
+    url.pathname = resolve(url.pathname, location.pathname);
+  }
+
+  //
+  // We should not add port numbers if they are already the default port number
+  // for a given protocol. As the host also contains the port number we're going
+  // override it with the hostname which contains no port number.
+  //
+  if (!required(url.port, url.protocol)) {
+    url.host = url.hostname;
+    url.port = '';
+  }
+
+  //
+  // Parse down the `auth` for the username and password.
+  //
+  url.username = url.password = '';
+  if (url.auth) {
+    instruction = url.auth.split(':');
+    url.username = instruction[0] || '';
+    url.password = instruction[1] || '';
+  }
+
+  url.origin = url.protocol && url.host && url.protocol !== 'file:'
+    ? url.protocol +'//'+ url.host
+    : 'null';
+
+  //
+  // The href is just the compiled result.
+  //
+  url.href = url.toString();
+}
+
+/**
+ * This is convenience method for changing properties in the URL instance to
+ * insure that they all propagate correctly.
+ *
+ * @param {String} part          Property we need to adjust.
+ * @param {Mixed} value          The newly assigned value.
+ * @param {Boolean|Function} fn  When setting the query, it will be the function
+ *                               used to parse the query.
+ *                               When setting the protocol, double slash will be
+ *                               removed from the final url if it is true.
+ * @returns {URL} URL instance for chaining.
+ * @public
+ */
+function set(part, value, fn) {
+  var url = this;
+
+  switch (part) {
+    case 'query':
+      if ('string' === typeof value && value.length) {
+        value = (fn || qs.parse)(value);
+      }
+
+      url[part] = value;
+      break;
+
+    case 'port':
+      url[part] = value;
+
+      if (!required(value, url.protocol)) {
+        url.host = url.hostname;
+        url[part] = '';
+      } else if (value) {
+        url.host = url.hostname +':'+ value;
+      }
+
+      break;
+
+    case 'hostname':
+      url[part] = value;
+
+      if (url.port) value += ':'+ url.port;
+      url.host = value;
+      break;
+
+    case 'host':
+      url[part] = value;
+
+      if (/:\d+$/.test(value)) {
+        value = value.split(':');
+        url.port = value.pop();
+        url.hostname = value.join(':');
+      } else {
+        url.hostname = value;
+        url.port = '';
+      }
+
+      break;
+
+    case 'protocol':
+      url.protocol = value.toLowerCase();
+      url.slashes = !fn;
+      break;
+
+    case 'pathname':
+    case 'hash':
+      if (value) {
+        var char = part === 'pathname' ? '/' : '#';
+        url[part] = value.charAt(0) !== char ? char + value : value;
+      } else {
+        url[part] = value;
+      }
+      break;
+
+    default:
+      url[part] = value;
+  }
+
+  for (var i = 0; i < rules.length; i++) {
+    var ins = rules[i];
+
+    if (ins[4]) url[ins[1]] = url[ins[1]].toLowerCase();
+  }
+
+  url.origin = url.protocol && url.host && url.protocol !== 'file:'
+    ? url.protocol +'//'+ url.host
+    : 'null';
+
+  url.href = url.toString();
+
+  return url;
+}
+
+/**
+ * Transform the properties back in to a valid and full URL string.
+ *
+ * @param {Function} stringify Optional query stringify function.
+ * @returns {String} Compiled version of the URL.
+ * @public
+ */
+function toString(stringify) {
+  if (!stringify || 'function' !== typeof stringify) stringify = qs.stringify;
+
+  var query
+    , url = this
+    , protocol = url.protocol;
+
+  if (protocol && protocol.charAt(protocol.length - 1) !== ':') protocol += ':';
+
+  var result = protocol + (url.slashes ? '//' : '');
+
+  if (url.username) {
+    result += url.username;
+    if (url.password) result += ':'+ url.password;
+    result += '@';
+  }
+
+  result += url.host + url.pathname;
+
+  query = 'object' === typeof url.query ? stringify(url.query) : url.query;
+  if (query) result += '?' !== query.charAt(0) ? '?'+ query : query;
+
+  if (url.hash) result += url.hash;
+
+  return result;
+}
+
+Url.prototype = { set: set, toString: toString };
+
+//
+// Expose the URL parser and some additional properties that might be useful for
+// others or testing.
+//
+Url.extractProtocol = extractProtocol;
+Url.location = lolcation;
+Url.trimLeft = trimLeft;
+Url.qs = qs;
+
+module.exports = Url;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+
+},{"querystringify":17,"requires-port":18}]},{},[1])
 
 //# sourceMappingURL=rtclive.js.map

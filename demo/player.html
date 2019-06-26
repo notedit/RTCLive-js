@@ -17,9 +17,9 @@ async function init() {
     const playerConfig = new RTCPlayerConfig();
 	const player = new RTCPlayer(playerConfig);
 	
-	const playUrl =  'ws://127.0.0.1:5000/ws';
+	const playUrl =  'ws://127.0.0.1:5000/live/stream';
 
-	await player.startPlay('test_streamID',playUrl);
+	await player.startPlay(playUrl);
 	
 	player.play(videoElement);
 

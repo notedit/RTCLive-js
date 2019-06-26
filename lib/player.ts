@@ -23,10 +23,14 @@ class RTCPlayer extends EventEmitter {
         this.config = config
     }
 
-    async startPlay(streamId:string, playUrl:string) {
+    async startPlay(playUrl:string) {
 
-        this.streamId = streamId
         this.playUrl = playUrl
+
+        const playURL = new URL(playUrl)
+        let pathname = playURL.pathname
+        let streaminfo = pathname.split('/')
+        this.streamId = streaminfo.pop()
 
         return new Promise(async (resolve,reject) => {
 
@@ -84,10 +88,10 @@ class RTCPlayer extends EventEmitter {
                 this.websocket.onopen = () => {
     
                     hasConnected = true
-    
+                    
                     const data =  {
                         cmd: 'play',
-                        streamId:streamId,
+                        streamId: this.streamId,
                         sdp: offer.sdp
                     }
     

@@ -70,6 +70,11 @@ Object.defineProperty(exports, "__esModule", {
 
 var events_1 = require("events");
 
+var parseUrl = require('url-parse');
+
+var BASE_URL = 'http://localhost:5000';
+var BACK_BASH_URL = 'http://localhost:5000';
+
 var RTCPlayerConfig = function RTCPlayerConfig() {
   (0, _classCallCheck2.default)(this, RTCPlayerConfig);
 };
@@ -95,166 +100,106 @@ function (_events_1$EventEmitte) {
     value: function startPlay(playUrl) {
       return __awaiter(this, void 0, void 0,
       /*#__PURE__*/
-      _regenerator.default.mark(function _callee3() {
+      _regenerator.default.mark(function _callee() {
         var _this2 = this;
 
-        var playURL, pathname, streaminfo;
-        return _regenerator.default.wrap(function _callee3$(_context3) {
+        var parsedUrl, pathname, streaminfo, options, peerconnection, transceiverInit, offer, data, res, ret, _ret$d, sdp, subscriberId, answer;
+
+        return _regenerator.default.wrap(function _callee$(_context) {
           while (1) {
-            switch (_context3.prev = _context3.next) {
+            switch (_context.prev = _context.next) {
               case 0:
                 this.playUrl = playUrl;
-                playURL = new URL(playUrl);
-                pathname = playURL.pathname;
+                console.log('playUrl', playUrl);
+                parsedUrl = parseUrl(playUrl);
+                pathname = parsedUrl.pathname;
                 streaminfo = pathname.split('/');
                 this.streamId = streaminfo.pop();
-                return _context3.abrupt("return", new Promise(function (resolve, reject) {
-                  return __awaiter(_this2, void 0, void 0,
-                  /*#__PURE__*/
-                  _regenerator.default.mark(function _callee2() {
-                    var _this3 = this;
+                this.stream = null;
+                options = {
+                  iceServers: [],
+                  iceTransportPolicy: 'all',
+                  bundlePolicy: 'max-bundle',
+                  rtcpMuxPolicy: 'require',
+                  sdpSemantics: 'unified-plan'
+                };
+                peerconnection = new RTCPeerConnection(options);
+                transceiverInit = {
+                  direction: 'recvonly'
+                };
+                _context.next = 12;
+                return peerconnection.addTransceiver('audio', transceiverInit);
 
-                    var playTimeout, options, offer;
-                    return _regenerator.default.wrap(function _callee2$(_context2) {
-                      while (1) {
-                        switch (_context2.prev = _context2.next) {
-                          case 0:
-                            // timeout for play 
-                            playTimeout = setTimeout(function () {
-                              playTimeout = null;
-                              reject();
-                            }, 2000);
-                            options = {
-                              iceServers: [],
-                              iceTransportPolicy: 'all',
-                              bundlePolicy: 'max-bundle',
-                              rtcpMuxPolicy: 'require',
-                              sdpSemantics: 'unified-plan'
-                            };
-                            this.peerconnection = new RTCPeerConnection(options);
+              case 12:
+                this.audioTransceiver = _context.sent;
+                _context.next = 15;
+                return peerconnection.addTransceiver('video', transceiverInit);
 
-                            this.peerconnection.oniceconnectionstatechange = function () {
-                              console.log(_this3.peerconnection.iceConnectionState);
-                            };
+              case 15:
+                this.videoTransceiver = _context.sent;
 
-                            this.peerconnection.ontrack = function (event) {
-                              if (playTimeout) {
-                                clearTimeout(playTimeout);
-                                playTimeout = null;
-                              }
+                peerconnection.ontrack = function (event) {
+                  setTimeout(function () {
+                    if (_this2.stream) {
+                      return;
+                    }
 
-                              setTimeout(function () {
-                                if (_this3.stream) {
-                                  return;
-                                }
+                    _this2.stream = event.streams[0];
 
-                                _this3.stream = event.streams[0];
-                                console.log('got stream ');
-                                resolve();
-                              }, 0);
-                            };
+                    if (_this2.videoElement && !_this2.videoElement.srcObject) {
+                      _this2.videoElement.srcObject = _this2.stream;
+                    }
+                  }, 0);
+                };
 
-                            this.peerconnection.addTransceiver("audio", {
-                              direction: "recvonly"
-                            });
-                            this.peerconnection.addTransceiver("video", {
-                              direction: "recvonly"
-                            });
-                            _context2.next = 9;
-                            return this.peerconnection.createOffer();
+                _context.next = 19;
+                return peerconnection.createOffer();
 
-                          case 9:
-                            offer = _context2.sent;
-                            _context2.next = 12;
-                            return this.peerconnection.setLocalDescription(offer);
+              case 19:
+                offer = _context.sent;
+                _context.next = 22;
+                return peerconnection.setLocalDescription(offer);
 
-                          case 12:
-                            return _context2.abrupt("return", new Promise(function (resolve, reject) {
-                              _this3.websocket = new WebSocket(playUrl);
-                              var hasConnected = false;
+              case 22:
+                this.peerconnection = peerconnection;
+                data = {
+                  streamUrl: playUrl,
+                  streamId: this.streamId,
+                  sdp: offer.sdp
+                };
+                console.dir('play', data);
+                _context.next = 27;
+                return fetch(BASE_URL + '/play', {
+                  method: 'post',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(data)
+                });
 
-                              _this3.websocket.onopen = function () {
-                                hasConnected = true;
-                                var data = {
-                                  cmd: 'play',
-                                  streamId: _this3.streamId,
-                                  sdp: offer.sdp
-                                };
+              case 27:
+                res = _context.sent;
+                _context.next = 30;
+                return res.json();
 
-                                _this3.websocket.send(JSON.stringify(data));
+              case 30:
+                ret = _context.sent;
+                console.dir(ret);
+                _ret$d = ret.d, sdp = _ret$d.sdp, subscriberId = _ret$d.subscriberId;
+                this.subscriberId = subscriberId;
+                answer = new RTCSessionDescription({
+                  type: 'answer',
+                  sdp: sdp
+                });
+                _context.next = 37;
+                return this.peerconnection.setRemoteDescription(answer);
 
-                                console.log('send', data);
-                              };
-
-                              _this3.websocket.onmessage = function (event) {
-                                return __awaiter(_this3, void 0, void 0,
-                                /*#__PURE__*/
-                                _regenerator.default.mark(function _callee() {
-                                  var data, msg, answer;
-                                  return _regenerator.default.wrap(function _callee$(_context) {
-                                    while (1) {
-                                      switch (_context.prev = _context.next) {
-                                        case 0:
-                                          data = event.data;
-                                          msg = JSON.parse(data);
-                                          console.dir(msg);
-
-                                          if (!(msg.code > 0)) {
-                                            _context.next = 6;
-                                            break;
-                                          }
-
-                                          reject('onmessage error');
-                                          return _context.abrupt("return");
-
-                                        case 6:
-                                          answer = new RTCSessionDescription({
-                                            type: 'answer',
-                                            sdp: msg.data.sdp
-                                          });
-                                          _context.next = 9;
-                                          return this.peerconnection.setRemoteDescription(answer);
-
-                                        case 9:
-                                          resolve();
-
-                                        case 10:
-                                        case "end":
-                                          return _context.stop();
-                                      }
-                                    }
-                                  }, _callee, this);
-                                }));
-                              };
-
-                              _this3.websocket.onclose = function (event) {
-                                console.log("onclose");
-                              };
-
-                              _this3.websocket.onerror = function (event) {
-                                console.error('onerror');
-
-                                if (!hasConnected) {
-                                  reject('can not connecte to server');
-                                }
-                              };
-                            }));
-
-                          case 13:
-                          case "end":
-                            return _context2.stop();
-                        }
-                      }
-                    }, _callee2, this);
-                  }));
-                }));
-
-              case 6:
+              case 37:
               case "end":
-                return _context3.stop();
+                return _context.stop();
             }
           }
-        }, _callee3, this);
+        }, _callee, this);
       }));
     }
   }, {
@@ -262,25 +207,45 @@ function (_events_1$EventEmitte) {
     value: function stopPlay() {
       return __awaiter(this, void 0, void 0,
       /*#__PURE__*/
-      _regenerator.default.mark(function _callee4() {
-        return _regenerator.default.wrap(function _callee4$(_context4) {
+      _regenerator.default.mark(function _callee2() {
+        var data, res, ret;
+        return _regenerator.default.wrap(function _callee2$(_context2) {
           while (1) {
-            switch (_context4.prev = _context4.next) {
+            switch (_context2.prev = _context2.next) {
               case 0:
                 if (this.peerconnection) {
                   this.peerconnection.close();
                 }
 
-                if (this.websocket) {
-                  this.websocket.close();
-                }
+                data = {
+                  streamUrl: this.playUrl,
+                  streamId: this.streamId,
+                  subscriberId: this.subscriberId
+                };
+                _context2.next = 4;
+                return fetch(BASE_URL + '/unplay', {
+                  method: 'post',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(data)
+                });
 
-              case 2:
+              case 4:
+                res = _context2.sent;
+                _context2.next = 7;
+                return res.json();
+
+              case 7:
+                ret = _context2.sent;
+                console.dir(ret);
+
+              case 9:
               case "end":
-                return _context4.stop();
+                return _context2.stop();
             }
           }
-        }, _callee4, this);
+        }, _callee2, this);
       }));
     }
   }, {
@@ -292,11 +257,13 @@ function (_events_1$EventEmitte) {
       videoElement.onloadedmetadata = function () {};
 
       this.videoElement = videoElement;
-      this.videoElement.srcObject = this.stream;
 
       try {
+        this.videoElement.srcObject = this.stream;
         this.videoElement.play();
-      } catch (error) {}
+      } catch (error) {
+        console.error(error);
+      }
     }
   }]);
   return RTCPlayer;
@@ -304,7 +271,7 @@ function (_events_1$EventEmitte) {
 
 exports.RTCPlayer = RTCPlayer;
 
-},{"@babel/runtime/helpers/classCallCheck":5,"@babel/runtime/helpers/createClass":6,"@babel/runtime/helpers/getPrototypeOf":7,"@babel/runtime/helpers/inherits":8,"@babel/runtime/helpers/interopRequireDefault":9,"@babel/runtime/helpers/possibleConstructorReturn":10,"@babel/runtime/regenerator":15,"events":16}],3:[function(require,module,exports){
+},{"@babel/runtime/helpers/classCallCheck":5,"@babel/runtime/helpers/createClass":6,"@babel/runtime/helpers/getPrototypeOf":7,"@babel/runtime/helpers/inherits":8,"@babel/runtime/helpers/interopRequireDefault":9,"@babel/runtime/helpers/possibleConstructorReturn":10,"@babel/runtime/regenerator":15,"events":16,"url-parse":19}],3:[function(require,module,exports){
 "use strict";
 
 var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
@@ -424,10 +391,10 @@ function (_events_1$EventEmitte) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
+                console.log('pushUrl', pushUrl);
                 parsedUrl = parseUrl(pushUrl);
                 pathname = parsedUrl.pathname;
                 streaminfo = pathname.split('/');
-                console.dir(streaminfo);
                 this.streamId = streaminfo.pop();
                 this.pushUrl = pushUrl;
                 options = {
@@ -505,7 +472,8 @@ function (_events_1$EventEmitte) {
                   streamId: this.streamId,
                   sdp: offer.sdp
                 };
-                _context2.next = 37;
+                console.dir('publish', data);
+                _context2.next = 38;
                 return fetch(BASE_URL + '/publish', {
                   method: 'post',
                   headers: {
@@ -514,12 +482,12 @@ function (_events_1$EventEmitte) {
                   body: JSON.stringify(data)
                 });
 
-              case 37:
+              case 38:
                 res = _context2.sent;
-                _context2.next = 40;
+                _context2.next = 41;
                 return res.json();
 
-              case 40:
+              case 41:
                 ret = _context2.sent;
                 console.dir(ret);
                 sdp = ret.d.sdp;
@@ -527,10 +495,10 @@ function (_events_1$EventEmitte) {
                   type: 'answer',
                   sdp: sdp
                 });
-                _context2.next = 46;
+                _context2.next = 47;
                 return this.peerconnection.setRemoteDescription(answer);
 
-              case 46:
+              case 47:
               case "end":
                 return _context2.stop();
             }

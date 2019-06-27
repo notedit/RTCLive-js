@@ -1,5 +1,13 @@
 import { EventEmitter }   from 'events'
 
+const parseUrl = require('url-parse')
+
+
+const BASE_URL = 'http://localhost:5000'
+
+const BACK_BASH_URL = 'http://localhost:5000'
+
+
 
 class RTCPlayerConfig {
 
@@ -14,9 +22,11 @@ class RTCPlayer extends EventEmitter {
     private closed:boolean
     private videoElement:HTMLVideoElement
     private subscriberId:string
-    private websocket:WebSocket
     private streamId:string
     private playUrl:string
+
+    private audioTransceiver:RTCRtpTransceiver
+    private videoTransceiver:RTCRtpTransceiver
 
     constructor(config:RTCPlayerConfig) {
         super()
@@ -27,116 +37,84 @@ class RTCPlayer extends EventEmitter {
 
         this.playUrl = playUrl
 
-        const playURL = new URL(playUrl)
-        let pathname = playURL.pathname
+        console.log('playUrl', playUrl)
+
+        const parsedUrl = parseUrl(playUrl)
+
+        let pathname = parsedUrl.pathname
+      
         let streaminfo = pathname.split('/')
+       
         this.streamId = streaminfo.pop()
 
-        return new Promise(async (resolve,reject) => {
+        this.stream = null
 
-            // timeout for play 
-            let playTimeout = setTimeout(() => {
-                playTimeout = null
-                reject()
-            },2000)
+        let options = {
+            iceServers: [],
+            iceTransportPolicy : 'all',   // relay or all
+            bundlePolicy       : 'max-bundle',
+            rtcpMuxPolicy      : 'require',
+            sdpSemantics       : 'unified-plan'
+        }
 
-            let options = {
-                iceServers: [],
-                iceTransportPolicy : 'all',   // relay or all
-                bundlePolicy       : 'max-bundle',
-                rtcpMuxPolicy      : 'require',
-                sdpSemantics       : 'unified-plan'
-            }
-    
-            this.peerconnection = new RTCPeerConnection(options as RTCConfiguration)
-    
-            this.peerconnection.oniceconnectionstatechange = () => {
-                console.log(this.peerconnection.iceConnectionState)
-            }
-    
-            this.peerconnection.ontrack = (event) => {
+        let peerconnection = new RTCPeerConnection(options as RTCConfiguration)
 
-                if(playTimeout) {
-                    clearTimeout(playTimeout)
-                    playTimeout = null
+        const transceiverInit:RTCRtpTransceiverInit = {
+            direction: 'recvonly'
+        }
+
+        this.audioTransceiver = await peerconnection.addTransceiver('audio', transceiverInit)
+        this.videoTransceiver = await peerconnection.addTransceiver('video', transceiverInit)
+
+        peerconnection.ontrack = (event) => {
+
+            setTimeout(() => {
+                if (this.stream) {
+                    return
                 }
+                this.stream = event.streams[0]
 
-                setTimeout(() => {
-                    if (this.stream) {
-                        return
-                    }
-                    this.stream = event.streams[0]
-                    console.log('got stream ')
-                    resolve()
-                }, 0)
-            }
-
-            this.peerconnection.addTransceiver("audio", {direction:"recvonly"})
-            this.peerconnection.addTransceiver("video", {direction:"recvonly"})
-
-            const offer = await this.peerconnection.createOffer()
-
-            await this.peerconnection.setLocalDescription(offer)
-
-
-            return new Promise((resolve,reject) => {
-
-                this.websocket = new WebSocket(playUrl)
-
-                let hasConnected = false
-    
-                this.websocket.onopen = () => {
-    
-                    hasConnected = true
-                    
-                    const data =  {
-                        cmd: 'play',
-                        streamId: this.streamId,
-                        sdp: offer.sdp
-                    }
-    
-                    this.websocket.send(JSON.stringify(data))
-    
-                    console.log('send', data)
+                if (this.videoElement && !this.videoElement.srcObject) {
+                    this.videoElement.srcObject = this.stream;
                 }
-    
-                this.websocket.onmessage = async (event) => {
-    
-                    const data = event.data
-                    const msg = JSON.parse(data)
-                    
-                    console.dir(msg)
+               
+            },0)
+        }
 
-                    if (msg.code > 0) {
-                        reject('onmessage error')
-                        return
-                    }
-    
-                    let answer = new RTCSessionDescription({
-                        type: 'answer',
-                        sdp: msg.data.sdp
-                    })
-            
-                    await this.peerconnection.setRemoteDescription(answer)
-    
-                    resolve()
-                }
-    
-                this.websocket.onclose = (event) => {
+        const offer = await peerconnection.createOffer()
 
-                    console.log("onclose")
-                }
-    
-                this.websocket.onerror = (event) => {
+        await peerconnection.setLocalDescription(offer)
 
-                    console.error('onerror')
-                    if (!hasConnected) {
-                        reject('can not connecte to server')
-                    }
-                }
-            })
+        this.peerconnection = peerconnection
 
+        const data = {
+            streamUrl: playUrl,
+            streamId:this.streamId,
+            sdp: offer.sdp,
+        }
+
+        console.dir('play', data)
+
+        let res = await fetch(BASE_URL + '/play', {
+            method: 'post',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
         })
+
+        let ret = await res.json()
+
+        console.dir(ret)
+
+        const { sdp, subscriberId} = ret.d 
+
+        this.subscriberId = subscriberId
+
+        let answer = new RTCSessionDescription({
+            type: 'answer',
+            sdp: sdp
+        })
+
+        await this.peerconnection.setRemoteDescription(answer)
 
     }
 
@@ -146,9 +124,23 @@ class RTCPlayer extends EventEmitter {
             this.peerconnection.close()
         }
 
-        if (this.websocket) {
-            this.websocket.close()
+        const data = {
+            streamUrl: this.playUrl,
+            streamId:this.streamId,
+            subscriberId: this.subscriberId
         }
+
+        let res = await fetch(BASE_URL + '/unplay', {
+            method: 'post',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+
+        let ret = await res.json()
+
+        console.dir(ret)
+
+
     }
 
     play(videoElement:HTMLVideoElement) {
@@ -159,14 +151,14 @@ class RTCPlayer extends EventEmitter {
         videoElement.onloadedmetadata = () => {
 
         }
-
+        
         this.videoElement = videoElement
-        this.videoElement.srcObject = this.stream
 
         try {
+            this.videoElement.srcObject = this.stream
             this.videoElement.play()
         } catch (error) {
-            
+            console.error(error)
         }
     }
     

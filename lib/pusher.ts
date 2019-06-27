@@ -24,6 +24,7 @@ class RTCPusher extends EventEmitter {
 
     private audioTrack:MediaStreamTrack
     private videoTrack:MediaStreamTrack 
+    
     private audioTransceiver:RTCRtpTransceiver
     private videoTransceiver:RTCRtpTransceiver
 
@@ -53,11 +54,14 @@ class RTCPusher extends EventEmitter {
     // pushUrl:  webrtc://domain:port/app/stream 
     async startPush(pushUrl:string) {
 
+        console.log('pushUrl', pushUrl)
+
         const parsedUrl = parseUrl(pushUrl)
 
         let pathname = parsedUrl.pathname
+      
         let streaminfo = pathname.split('/')
-        console.dir(streaminfo)
+       
         this.streamId = streaminfo.pop()
 
         this.pushUrl = pushUrl
@@ -104,6 +108,8 @@ class RTCPusher extends EventEmitter {
             streamId:this.streamId,
             sdp: offer.sdp,
         }
+
+        console.dir('publish', data)
 
         let res = await fetch(BASE_URL + '/publish', {
             method: 'post',

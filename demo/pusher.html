@@ -14,14 +14,16 @@ window.localStorage.setItem('debug', '*ERROR*');
 async function init() {    
 
     const videoElement = document.getElementById('video_container');
-    const pusherConfig = new RTCPusherConfig();
-    const pusher = new RTCPusher(pusherConfig);
+    const config = new RTCPusherConfig();
+    config.audio = true;
+    config.video = true;
+    const pusher = new RTCPusher(config);
 
     await pusher.setupLocalMedia();
 
     pusher.play(videoElement);
 
-    const pushUrl = 'ws://127.0.0.1:5000/live/stream';
+    const pushUrl = 'webrtc://127.0.0.1:5000/live/stream';
 
     await pusher.startPush(pushUrl);
     
